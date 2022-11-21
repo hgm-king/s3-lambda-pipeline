@@ -1,1 +1,2 @@
 pandas
+s3fs

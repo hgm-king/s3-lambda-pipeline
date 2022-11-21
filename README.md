@@ -25,6 +25,8 @@ We use docker to compile our lambda because Pandas cannot be build/compiled on a
 If you can figure out a cleaner workaround, that would be nice. Ideally a single build command with Docker would be nice!
 
 ## Resources
-- https://docs.aws.amazon.com/lambda/latest/dg/python-package.html#python-package-create-package-with-dependency
-- https://spacelift.io/blog/terraform-aws-lambda#prerequisites
-- https://note.nkmk.me/en/python-pip-install-requirements/
+- [making python lambda with dependencies](https://docs.aws.amazon.com/lambda/latest/dg/python-package.html#python-package-create-package-with-dependency)
+- [aws labda tutorial](https://spacelift.io/blog/terraform-aws-lambda#prerequisites)
+- [pip install requirements.txt](https://note.nkmk.me/en/python-pip-install-requirements/)
+- [TF link S3 to Lambda](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_notification)
+- [reading & writing to s3 with pandas](https://towardsdatascience.com/reading-and-writing-files-from-to-amazon-s3-with-pandas-ccaf90bfe86c)

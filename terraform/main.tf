@@ -52,6 +52,17 @@ resource "aws_lambda_permission" "allow_bucket" {
   source_arn    = aws_s3_bucket.bucket.arn
 }
 
+resource "aws_s3_bucket" "lambda" {
+  bucket = "hg-s3-bucket-lambda"
+}
+
+resource "aws_s3_object" "file_upload" {
+  bucket = aws_s3_bucket.lambda.id
+  key    = "hello-python.zip"
+  source = "${path.module}/../hello-python.zip" # its mean it depended on zip
+  source_hash = data.archive_file.zip_the_python_code.output_base64sha256
+}
+
 // this is how you zip code and use it in other resources
 data "archive_file" "zip_the_python_code" {
   type        = "zip"
@@ -60,14 +71,16 @@ data "archive_file" "zip_the_python_code" {
 }
 
 resource "aws_lambda_function" "terraform_lambda_func" {
-  filename      = "${path.module}/../hello-python.zip"
   function_name = "Spacelift_Test_Lambda_Function"
+  s3_bucket     = aws_s3_bucket.lambda.bucket
+  s3_key        = aws_s3_object.file_upload.key
   role          = aws_iam_role.lambda_role.arn
   handler       = "lambda.lambda_handler"
   runtime       = "python3.9"
+  timeout = 60
   depends_on    = [aws_iam_role_policy_attachment.attach_iam_policy_to_iam_role]
   // this makes TF recognize that the zip has changed
-  source_code_hash  = "${data.archive_file.zip_the_python_code.output_base64sha256}"
+  source_code_hash = data.archive_file.zip_the_python_code.output_base64sha256
 }
 
 resource "aws_s3_bucket" "bucket" {
@@ -80,8 +93,7 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
   lambda_function {
     lambda_function_arn = aws_lambda_function.terraform_lambda_func.arn
     events              = ["s3:ObjectCreated:*"]
-    filter_prefix       = "AWSLogs/"
-    filter_suffix       = ".log"
+    filter_suffix       = ".csv"
   }
 
   depends_on = [aws_lambda_permission.allow_bucket]
