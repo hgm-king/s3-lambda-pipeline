@@ -1,5 +1,9 @@
+//
+// Policies
+//
+
 resource "aws_iam_role" "lambda_role" {
-  name               = "Spacelift_Test_Lambda_Function_Role"
+  name               = "s3-lambda-pipeline-role"
   assume_role_policy = <<EOF
 {
  "Version": "2012-10-17",
@@ -18,7 +22,7 @@ EOF
 }
 
 resource "aws_iam_policy" "iam_policy_for_lambda" {
-  name        = "aws_iam_policy_for_terraform_aws_lambda_role"
+  name        = "s3-lambda-pipeline-lambda-role-policy"
   path        = "/"
   description = "AWS IAM Policy for managing aws lambda role"
   policy      = <<EOF
@@ -51,8 +55,7 @@ resource "aws_iam_role_policy_attachment" "attach_iam_policy_to_iam_role" {
   policy_arn = aws_iam_policy.iam_policy_for_lambda.arn
 }
 
-
-
+// this lets our lambda get invoked by S3
 resource "aws_lambda_permission" "allow_bucket" {
   statement_id  = "AllowExecutionFromS3Bucket"
   action        = "lambda:InvokeFunction"
@@ -61,14 +64,23 @@ resource "aws_lambda_permission" "allow_bucket" {
   source_arn    = aws_s3_bucket.bucket.arn
 }
 
+//
+// Buckets
+//
+
+resource "aws_s3_bucket" "output" {
+  bucket = "s3-lambda-pipeline-output"
+}
+
 resource "aws_s3_bucket" "lambda" {
-  bucket = "hg-s3-bucket-lambda"
+  bucket = "s3-lambda-pipeline-lambda"
 }
 
 resource "aws_s3_object" "file_upload" {
   bucket = aws_s3_bucket.lambda.id
-  key    = "hello-python.zip"
-  source = "${path.module}/../hello-python.zip" # its mean it depended on zip
+  key    = "s3-lambda-pipeline.zip"
+  source = "${path.module}/../s3-lambda-pipeline.zip" # its mean it depended on zip
+  // this makes TF recognize that the zip has changed
   source_hash = data.archive_file.zip_the_python_code.output_base64sha256
 }
 
@@ -76,15 +88,19 @@ resource "aws_s3_object" "file_upload" {
 data "archive_file" "zip_the_python_code" {
   type        = "zip"
   source_dir  = "${path.module}/../package/code"
-  output_path = "${path.module}/../hello-python.zip"
+  output_path = "${path.module}/../s3-lambda-pipeline.zip"
 }
 
 resource "aws_s3_bucket" "bucket" {
-  bucket = "hg-s3-bucket"
+  bucket = "s3-lambda-pipeline-source"
 }
 
+//
+// Lambda
+//
+
 resource "aws_lambda_function" "terraform_lambda_func" {
-  function_name = "Spacelift_Test_Lambda_Function"
+  function_name = "s3-lambda-pipeline-lambda"
   s3_bucket     = aws_s3_bucket.lambda.bucket
   s3_key        = aws_s3_object.file_upload.key
   role          = aws_iam_role.lambda_role.arn
@@ -111,8 +127,4 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
   }
 
   depends_on = [aws_lambda_permission.allow_bucket]
-}
-
-resource "aws_s3_bucket" "output" {
-  bucket = "hg-s3-bucket-output"
 }
