@@ -44,15 +44,15 @@ resource "aws_iam_role_policy_attachment" "attach_iam_policy_to_iam_role" {
   policy_arn = aws_iam_policy.iam_policy_for_lambda.arn
 }
 
-
+// this is how you zip code and use it in other resources
 data "archive_file" "zip_the_python_code" {
   type        = "zip"
   source_dir  = "${path.module}/../src"
-  output_path = "${path.module}/hello-python.zip"
+  output_path = "${path.module}/../hello-python.zip"
 }
 
 resource "aws_lambda_function" "terraform_lambda_func" {
-  filename      = "${path.module}/hello-python.zip"
+  filename      = "${path.module}/../hello-python.zip"
   function_name = "Spacelift_Test_Lambda_Function"
   role          = aws_iam_role.lambda_role.arn
   handler       = "lambda.lambda_handler"
