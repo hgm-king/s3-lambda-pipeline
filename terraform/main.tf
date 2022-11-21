@@ -33,7 +33,14 @@ resource "aws_iam_policy" "iam_policy_for_lambda" {
      ],
      "Resource": "arn:aws:logs:*:*:*",
      "Effect": "Allow"
-   }
+   },
+   {
+        "Effect": "Allow",
+        "Action": [
+            "s3:*"
+        ],
+        "Resource": "arn:aws:s3:::*"
+    }
  ]
 }
 EOF
@@ -43,6 +50,8 @@ resource "aws_iam_role_policy_attachment" "attach_iam_policy_to_iam_role" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = aws_iam_policy.iam_policy_for_lambda.arn
 }
+
+
 
 resource "aws_lambda_permission" "allow_bucket" {
   statement_id  = "AllowExecutionFromS3Bucket"
@@ -70,6 +79,10 @@ data "archive_file" "zip_the_python_code" {
   output_path = "${path.module}/../hello-python.zip"
 }
 
+resource "aws_s3_bucket" "bucket" {
+  bucket = "hg-s3-bucket"
+}
+
 resource "aws_lambda_function" "terraform_lambda_func" {
   function_name = "Spacelift_Test_Lambda_Function"
   s3_bucket     = aws_s3_bucket.lambda.bucket
@@ -81,10 +94,11 @@ resource "aws_lambda_function" "terraform_lambda_func" {
   depends_on    = [aws_iam_role_policy_attachment.attach_iam_policy_to_iam_role]
   // this makes TF recognize that the zip has changed
   source_code_hash = data.archive_file.zip_the_python_code.output_base64sha256
-}
-
-resource "aws_s3_bucket" "bucket" {
-  bucket = "hg-s3-bucket"
+  environment {
+    variables = {
+      OUTPUT_S3_BUCKET_NAME = "${aws_s3_bucket.output.bucket}"
+    }
+  }
 }
 
 resource "aws_s3_bucket_notification" "bucket_notification" {
@@ -97,4 +111,8 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
   }
 
   depends_on = [aws_lambda_permission.allow_bucket]
+}
+
+resource "aws_s3_bucket" "output" {
+  bucket = "hg-s3-bucket-output"
 }
